@@ -1,6 +1,5 @@
 import sys
 from socket import socket, AF_INET, SOCK_STREAM
-from sys import argv
 import settings
 from common import *
 
@@ -18,32 +17,53 @@ def client_message_handler(message):
         }
 
 
-def main():
+def run_server_with_default_params():
+    port = PORT_DEFAULT
+    ip_address = IP_ADDRESS_DEFAULT
+    # start_server(ip_address, port)
+    return 'default'
+
+
+def main(ip_address=None, port=None):
     argv = sys.argv
-    try:
+    # try:
+
+    if str(argv[1]).lower() == 'default':
+        run_server_with_default_params()
+    else:
+
         if '-p' in argv:
             port = int(argv[argv.index('-p') + 1])
         else:
-            port = PORT_DEFAULT
+            raise IndexError
 
-        if 1024 > port > 65535:
+        if 1024 < port < 65535:
+            pass
+        else:
             raise ValueError
-    except IndexError:
-        print('После параметра -\'p\' необходимо указать номер порта! ')
-        exit(1)
-    except ValueError:
-        print('Значение для порта должно быть в диапазоне от 1024 до 65535.')
-        exit(1)
+        # except IndexError:
+        #     print('После параметра -\'p\' необходимо указать номер порта! ')
+        #     exit(1)
+        # except ValueError:
+        #     print('Значение для порта должно быть в диапазоне от 1024 до 65535.')
+        #     exit(1)
 
-    try:
+        # try:
         if '-a' in argv:
             ip_address = argv[argv.index('-a') + 1]
         else:
             ip_address = IP_ADDRESS_DEFAULT
-    except IndexError:
-        print('После параметра \'a\'- необходимо указать ip адрес для входящих подключений')
-        exit(1)
 
+    # except IndexError:
+    #     print('После параметра \'a\'- необходимо указать ip адрес для входящих подключений')
+    #     exit(1)
+
+    return 'ok'
+    # return start_server(ip_address, port)
+
+
+def start_server(ip_address, port):
+    print('Сервер запущен! Ожидание подключения клиента!')
     transport = socket(AF_INET, SOCK_STREAM)
     transport.bind((ip_address, port))
     transport.listen(NUMBER_OF_CONNECTIONS)
@@ -62,4 +82,5 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    # main()
+    start_server('127.0.0.1', 8080)
