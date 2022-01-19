@@ -35,11 +35,11 @@ def port_verify_func(argv):
         else:
             raise ValueError
 
-    except IndexError:
-        logger.error('"IndexError:" После параметра -\'p\' необходимо указать номер порта! ')
+    except IndexError as err:
+        logger.error(f'{err} - После параметра -\'p\' необходимо указать номер порта! ')
         exit(1)
-    except ValueError:
-        logger.error('"ValueError:" Значение для порта должно быть в диапазоне от 1024 до 65535.')
+    except ValueError as err:
+        logger.error(f'{err} - Значение для порта должно быть в диапазоне от 1024 до 65535.')
         exit(1)
 
 
@@ -49,8 +49,8 @@ def ip_address_verify_func(argv):
             ip_address = argv[argv.index('-a') + 1]
             logger.info(f'Выбран IP адрес {ip_address}')
         return ip_address
-    except IndexError:
-        logger.error('После параметра \'a\'- необходимо указать ip адрес для входящих подключений')
+    except IndexError as err:
+        logger.error(f'{err} - После параметра \'a\'- необходимо указать ip адрес для входящих подключений')
         exit(1)
 
 
@@ -71,8 +71,8 @@ def start_server(ip_address, port):
             send_message(client, response)
             logger.info('Сообщение клиенту отправлено')
             client.close()
-        except (ValueError, json.JSONDecodeError):
-            logger.error('ValueError: Принято некорретное сообщение от клиента.')
+        except json.JSONDecodeError as err:
+            logger.error(f'{err}: Принято некорретное сообщение от клиента.')
             client.close()
 
 

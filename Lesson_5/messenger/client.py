@@ -34,8 +34,8 @@ def ip_address_verify_func(argv):
             return ip_address
         else:
             raise IndexError
-    except IndexError:
-        logger.error('Не указан адрес для подключения к серверу')
+    except IndexError as err:
+        logger.error(f'{err} - Не указан адрес для подключения к серверу')
         exit(1)
 
 
@@ -52,11 +52,11 @@ def port_verify_func(argv):
         else:
             raise ValueError
 
-    except IndexError:
-        logger.error('"IndexError:" После параметра -\'p\' необходимо указать номер порта! ')
+    except IndexError as err:
+        logger.error(f'{err} - После параметра -\'p\' необходимо указать номер порта! ')
         exit(1)
-    except ValueError:
-        logger.error('"ValueError:" Значение для порта должно быть в диапазоне от 1024 до 65535.')
+    except ValueError as err:
+        logger.error(f'{err} Значение для порта должно быть в диапазоне от 1024 до 65535.')
         exit(1)
 
 
@@ -72,10 +72,9 @@ def connect_server(account_name, ip_address, port):
     try:
         answer = process_ans(get_message(transport))
         logger.info(f'Ответ от сервера {answer}')
-        print(answer)
         return answer
-    except (ValueError, json.JSONDecodeError):
-        logger.error('Не удалось декодировать сообщение сервера.')
+    except json.JSONDecodeError as err:
+        logger.error(f'{err} - Не удалось декодировать сообщение сервера.')
 
 
 def main(account_name, argv):
