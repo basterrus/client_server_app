@@ -1,7 +1,7 @@
 import sys
 import unittest
 from unittest.mock import patch
-from Lesson_3 import server, settings, common
+from Lesson_7.messenger import server
 
 
 class TestServerActualWork(unittest.TestCase):

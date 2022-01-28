@@ -1,12 +1,13 @@
 import sys
-import logging
+import select
+import time
 from socket import socket, AF_INET, SOCK_STREAM
-from sys import argv
-import settings
-from common import *
-from Lesson_7.log.log_config import log
+from Lesson_7.messenger.common import get_message, send_message
+from Lesson_7.log.log_config import log, logger
+from Lesson_7.messenger.settings import ACTION, ACCOUNT_NAME, PRESENCE, TIME, USER, RESPONSE, ERROR, PORT_DEFAULT, \
+    NUMBER_OF_CONNECTIONS, MESSAGE, SENDER
 
-logger = logging.getLogger('server')
+sys.path.append('../')
 
 
 @log
@@ -57,27 +58,68 @@ def ip_address_verify_func(argv):
         exit(1)
 
 
+def process_client_message(param, messages, client_with_message):
+    pass
+
+
 @log
 def start_server(ip_address, port):
     logger.info(f'Попытка запуска сервера {ip_address}:{port}')
     transport = socket(AF_INET, SOCK_STREAM)
     transport.bind((ip_address, port))
+    transport.settimeout(0.3)
     transport.listen(NUMBER_OF_CONNECTIONS)
 
+    clients = []
+    messages = []
+
     while True:
-        logger.info(f"Сервер успешно запущен, ожидает подключения клиентов")
-        client, client_address = transport.accept()
+
         try:
-            message_from_cient = get_message(client)
-            logger.info(f'Получено сообщение от клиента - {message_from_cient}')
-            response = client_message_handler(message_from_cient)
-            logger.info('Сообщение декодировано и обработано')
-            send_message(client, response)
-            logger.info('Сообщение клиенту отправлено')
-            client.close()
-        except json.JSONDecodeError as err:
-            logger.error(f'{err}: Принято некорретное сообщение от клиента.')
-            client.close()
+            logger.info(f"Сервер успешно запущен, ожидает подключения клиентов")
+            client, client_address = transport.accept()
+
+        except OSError:
+            pass
+
+        else:
+            logger.error(f'Установлено соединение с {client_address}')
+            clients.append(client)
+
+        recv_data_list = []
+        send_data_list = []
+        err_list = []
+
+        try:
+            if clients:
+                recv_data_list, send_data_list, err_list = select.select(clients, clients, [], 0)
+        except OSError:
+            pass
+
+        if recv_data_list:
+            for client_with_message in recv_data_list:
+                try:
+                    process_client_message(get_message(client_with_message), messages, client_with_message)
+                except:
+                    logger.info(f'Клиент {client_with_message.getpeername()} отключился от сервера')
+                    clients.remove(client_with_message)
+
+        if messages and send_data_list:
+            messages = {
+                ACTION: MESSAGE,
+                SENDER: messages[0][0],
+                TIME: time.time(),
+                MESSAGES_TEXT: messages[0][1]
+            }
+            del messages[0]
+
+            for waiting_client in send_data_list:
+                try:
+                    send_message(waiting_client, messages)
+                except:
+                    logger.info(f'Клиент {waiting_client.getpeername()} отключился от сервера')
+                    waiting_client.close()
+                    clients.remove(waiting_client)
 
 
 def main():

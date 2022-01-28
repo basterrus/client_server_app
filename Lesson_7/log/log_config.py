@@ -5,10 +5,12 @@ import sys
 import traceback
 # from functools import wraps
 
+
 if sys.argv[0].find('client.py') == -1:
     logger = logging.getLogger('server')
 else:
     logger = logging.getLogger('client')
+
 
 # Настройка формата вывода сообщения лога
 formatter = logging.Formatter("%(asctime)s - %(levelname)-8s - %(module)-8s - %(message)s ")

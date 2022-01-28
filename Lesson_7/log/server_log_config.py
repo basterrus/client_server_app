@@ -1,8 +1,7 @@
 import os
-from Lesson_6.log.log_config import formatter, create_dir, level_handler, Level_logging
+from Lesson_7.log.log_config import formatter, create_dir, level_handler, Level_logging, logger
 import logging.handlers
 
-logger = logging.getLogger('server')
 storage_name = create_dir()
 
 filename = os.path.join(storage_name, 'server.log')

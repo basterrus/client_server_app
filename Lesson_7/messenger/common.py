@@ -1,6 +1,6 @@
-from settings import *
+from Lesson_7.messenger.settings import *
 import json
-from Lesson_6.log.log_config import log
+from Lesson_7.log.log_config import log
 
 
 @log
@@ -15,6 +15,7 @@ def get_message(client):
             raise ValueError
     else:
         raise ValueError
+
 
 @log
 def send_message(sock, message):
