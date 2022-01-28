@@ -4,7 +4,7 @@ from socket import socket, AF_INET, SOCK_STREAM
 from sys import argv
 import settings
 from common import *
-from Lesson_6.log.log_config import log
+from Lesson_7.log.log_config import log
 
 logger = logging.getLogger('server')
 

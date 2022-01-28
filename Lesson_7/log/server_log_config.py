@@ -1,5 +1,5 @@
 import os
-from Lesson_5.log.log_config import formatter, create_dir, level_handler, Level_logging
+from Lesson_6.log.log_config import formatter, create_dir, level_handler, Level_logging
 import logging.handlers
 
 logger = logging.getLogger('server')
