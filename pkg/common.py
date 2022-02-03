@@ -1,6 +1,6 @@
-from Lesson_7.messenger.settings import *
 import json
-from Lesson_7.log.log_config import log
+from log.log_config import log
+from pkg.settings import MAX_PACKAGE_LENGTH, ENCODING
 
 
 @log

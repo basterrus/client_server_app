@@ -3,24 +3,18 @@ import logging
 import os.path
 import sys
 import traceback
-# from functools import wraps
-
 
 if sys.argv[0].find('client.py') == -1:
     logger = logging.getLogger('server')
 else:
     logger = logging.getLogger('client')
 
-
-# Настройка формата вывода сообщения лога
 formatter = logging.Formatter("%(asctime)s - %(levelname)-8s - %(module)-8s - %(message)s ")
 
-# Установка уровня логирования
 level_handler = logging.DEBUG
 Level_logging = logging.DEBUG
 
 
-# Создание директории если отсутствует
 def create_dir():
     storage_name = '../log/log_storage'
     if not os.path.exists(storage_name):
@@ -38,4 +32,5 @@ def log(func):
                      f'Вызов из функции {inspect.stack()[1][3]}')
 
         return ret
+
     return log_saver

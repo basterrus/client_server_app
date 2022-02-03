@@ -1,7 +1,7 @@
 import sys
 import unittest
 from unittest.mock import patch
-from Lesson_7.messenger import client
+import client
 
 
 class TestClientActualWork(unittest.TestCase):
