@@ -1,13 +1,49 @@
 import sys
 import json
 import socket
+import threading
 import time
 import argparse
-from Lesson_7.messenger.settings import PORT_DEFAULT, IP_ADDRESS_DEFAULT, ACTION, TIME, USER, ACCOUNT_NAME, SENDER, \
-    PRESENCE, RESPONSE, ERROR, MESSAGE, MESSAGE_TEXT
-from Lesson_7.messenger.common import get_message, send_message
-from Lesson_7.messenger.error import ReqFieldMissingError, ServerError
-from Lesson_7.log.log_config import log, logger
+from pkg.settings import PORT_DEFAULT, IP_ADDRESS_DEFAULT, ACTION, TIME, USER, ACCOUNT_NAME, SENDER, \
+    PRESENCE, RESPONSE, ERROR, MESSAGE, MESSAGE_TEXT, DESTINATION, EXIT
+from pkg.common import get_message, send_message
+from pkg.error import ReqFieldMissingError, ServerError
+from log.log_config import log, logger
+
+
+@log
+def create_exit_message(account_name):
+    return {
+        ACTION: EXIT,
+        TIME: time.time(),
+        ACCOUNT_NAME: account_name
+    }
+
+
+def print_help():
+    print('Поддерживаемые команды:')
+    print('message - отправить сообщение')
+    print('help - вывести подсказки по командам')
+    print('exit - выход из программы')
+
+
+@log
+def user_commands(sock, username):
+    print_help()
+    while True:
+        command = input('Введите команду: ')
+        if command == 'message':
+            create_message(sock, username)
+        elif command == 'help':
+            print_help()
+        elif command == 'exit':
+            send_message(sock, create_exit_message(username))
+            print('Завершение соединения.')
+            logger.info('Завершение работы по команде пользователя.')
+            time.sleep(0.5)
+            break
+        else:
+            print('Команда не распознана, help - вывести поддерживаемые команды.')
 
 
 @log
@@ -24,20 +60,22 @@ def message_from_server(message):
 
 @log
 def create_message(sock, account_name='Guest'):
-    message = input('Введите сообщение для отправки или \'!!!\' для завершения работы: ')
-    if message == '!!!':
-        sock.close()
-        logger.info('Завершение работы по команде пользователя.')
-        print('Спасибо за использование нашего сервиса!')
-        sys.exit(0)
+    to_user = input('Введите получателя сообщения: ')
+    message = input('Введите сообщение для отправки: ')
     message_dict = {
         ACTION: MESSAGE,
+        DESTINATION: to_user,
         TIME: time.time(),
         ACCOUNT_NAME: account_name,
         MESSAGE_TEXT: message
     }
     logger.debug(f'Сформирован словарь сообщения: {message_dict}')
-    return message_dict
+    try:
+        send_message(sock, message_dict)
+        logger.info(f'Отправлено сообщение для пользователя {to_user}')
+    except Exception as e:
+        logger.critical(f'Ошибка {e}')
+        sys.exit(1)
 
 
 @log
@@ -69,11 +107,11 @@ def arg_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('addr', default=IP_ADDRESS_DEFAULT, nargs='?')
     parser.add_argument('port', default=PORT_DEFAULT, type=int, nargs='?')
-    parser.add_argument('-m', '--mode', default='listen', nargs='?')
+    parser.add_argument('-n', '--name', default=None, nargs='?')
     namespace = parser.parse_args(sys.argv[1:])
     server_address = namespace.addr
     server_port = namespace.port
-    client_mode = namespace.mode
+    client_mode = namespace.name
 
     if not 1023 < server_port < 65536:
         logger.critical(
@@ -81,25 +119,23 @@ def arg_parser():
             f'Допустимы адреса с 1024 до 65535. Клиент завершается.')
         sys.exit(1)
 
-    if client_mode not in ('listen', 'send'):
-        logger.critical(f'Указан недопустимый режим работы {client_mode}, '
-                        f'допустимые режимы: listen , send')
-        sys.exit(1)
-
     return server_address, server_port, client_mode
 
 
 def main():
-    server_address, server_port, client_mode = arg_parser()
+    server_address, server_port, client_name = arg_parser()
+
+    if not client_name:
+        client_name = input('Введите имя пользователя: ')
 
     logger.info(
         f'Запущен клиент с параметрами: адрес сервера: {server_address}, '
-        f'порт: {server_port}, режим работы: {client_mode}')
+        f'порт: {server_port}, пользователь: {client_name}')
 
     try:
         transport = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         transport.connect((server_address, server_port))
-        send_message(transport, create_presence())
+        send_message(transport, create_presence(client_name))
         answer = process_response_ans(get_message(transport))
         logger.info(f'Установлено соединение с сервером. Ответ сервера: {answer}')
         print(f'Установлено соединение с сервером.')
@@ -119,25 +155,20 @@ def main():
         sys.exit(1)
 
     else:
-        if client_mode == 'send':
-            print('Режим работы - отправка сообщений.')
-        else:
-            print('Режим работы - приём сообщений.')
+        receiver = threading.Thread(target=message_from_server, args=(transport, client_name))
+        receiver.daemon = True
+        receiver.start()
+
+        user_interface = threading.Thread(target=user_commands, args=(transport, client_name))
+        user_interface.daemon = True
+        user_interface.start()
+        logger.debug('Запущены процессы')
 
         while True:
-            if client_mode == 'send':
-                try:
-                    send_message(transport, create_message(transport))
-                except (ConnectionResetError, ConnectionError, ConnectionAbortedError):
-                    logger.error(f'Соединение с сервером {server_address} было потеряно.')
-                    sys.exit(1)
-
-            if client_mode == 'listen':
-                try:
-                    message_from_server(get_message(transport))
-                except (ConnectionResetError, ConnectionError, ConnectionAbortedError):
-                    logger.error(f'Соединение с сервером {server_address} было потеряно.')
-                    sys.exit(1)
+            time.sleep(1)
+            if receiver.is_alive() and user_interface.is_alive():
+                continue
+            break
 
 
 if __name__ == '__main__':
